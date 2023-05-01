@@ -1,6 +1,5 @@
-import Image from 'next/image'
 import { Inter } from 'next/font/google'
-import { useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -14,35 +13,32 @@ class Cell {
   color: string;
 }
 
-export default function Home() {
+export default function Conway() {
 
-  // const numRows = 30;
-  // const numCols = 60;
-
-  const [numRows, setNumRows] = useState(75);
-  const [numCols, setNumCols] = useState(180);
+  const [numRows, setNumRows] = useState(50);
+  const [numCols, setNumCols] = useState(100);
   const [cellSize, setCellSize] = useState(10);
 
   const defaultCell: Cell = new Cell(false, "black");
   const initialGrid = new Array(numRows).fill(defaultCell).map(() => new Array(numCols).fill(defaultCell));
 
   const [tick, setTick] = useState(0);
-  const [grid, setGrid] = useState(initialGrid); // [x][y]
+  const [grid, setGrid] = useState(initialGrid);
   const [tickTimer, setTickTimer] = useState(null);
 
   const [isRunning, setIsRunning] = useState(false);
   const [randomizationDarkness, setRandomizationDarkness] = useState(0.5);
 
   function reset() {
-    setIsRunning(false);
     clearTimeout(tickTimer);
+    setIsRunning(false);
     setTick(0);
     setGrid(initialGrid);
   }
 
   function pause() {
-    setIsRunning(false);
     clearTimeout(tickTimer);
+    setIsRunning(false);
   }
 
   function play() {
@@ -50,6 +46,7 @@ export default function Home() {
     runTick(tick + 1, grid);
   }
 
+  // Fill all cells with random values
   function randomize() {
     const newGrid = grid.map(row => row.map(cell => {
       return new Cell(Math.random() > randomizationDarkness, "black");
@@ -57,6 +54,19 @@ export default function Home() {
     setGrid(newGrid);
   }
 
+  function setCellAlive(x: number, y: number) {
+    if (isRunning) return;
+    let newGrid = JSON.parse(JSON.stringify(grid));
+    newGrid[x][y] = new Cell(true, "black");
+    setGrid(newGrid)
+  }
+
+  function beginSimulation() {
+    setIsRunning(true);
+    runTick(0, grid);
+  }
+
+  // Count the live cells in the (possibly) 8 adjacent neighbors
   function liveNeighbors(x: number, y: number, grid) {
     let count = 0;
     if (x > 0 && y > 0 && grid[x - 1][y - 1].isAlive) count++;
@@ -71,10 +81,8 @@ export default function Home() {
     return count;
   }
 
+  // Apply the rules of the game and update the grid of cells
   function runTick(tickNumber: number, currentGrid: Cell[][]) {
-    console.log('Tick: ' + tickNumber);
-    console.log(currentGrid.length)
-    console.log(currentGrid[0].length)
     setTick(tickNumber);
 
     let newGrid = JSON.parse(JSON.stringify(currentGrid));
@@ -108,106 +116,111 @@ export default function Home() {
     }, 2);
 
     setTickTimer(tickTimer);
-
-  }
-
-  function setCellAlive(x: number, y: number) {
-    if (isRunning) return;
-    let newGrid = grid;
-    newGrid[x][y] = new Cell(true, "black");
-    setGrid(newGrid)
-    setTick(tick+1)
-  }
-
-  function beginSimulation() {
-    console.log('Beginning...');
-    setIsRunning(true);
-    runTick(0, grid);
   }
 
   return (
     <>
       <main className={`flex min-h-screen flex-col items-center p-12 select-none ${inter.className}`}>
 
-      <h1 className='text-2xl hover:tracking-widest'>Conway's Game of Life</h1>
-      <h3 className="text-lg font-light hover:tracking-widest cursor-default select-none">Tick: {tick}</h3>
+          <h1 className='text-2xl hover:tracking-widest'>Conway's Game of Life</h1>
+          <h3 className="text-lg font-light hover:tracking-widest cursor-default select-none">Tick: {tick}</h3>
 
-      <div className="mt-9 grid-container">
-        {
-          grid.map((row, xindex) => <div className="flex flex-row" key={`${xindex}`}>
-            {row.map((cell, yindex) =>
+          {/* Create a grid of cells to represent the baord in memory */}
+          <div className="mt-9 grid-container">
+            {
+              grid.map((row, xindex) => <div className="flex flex-row" key={`${xindex}`}>
+                {row.map((cell, yindex) =>
 
-              // Single Cell
-              <div
-                style={{width: `${cellSize}px`, height: `${cellSize}px`}}
-                className={`
-                    cell-container
-                    ${cell.isAlive ? "alive-cell" : ""}
-                    ${isRunning ? "" : "cell-border"}
-                  `}
-                key={`${yindex}`}
-                onClick={() => setCellAlive(xindex, yindex)}
-              ></div>
-              // End Single Cell
+                  // Single Cell
+                  <div
+                    style={{width: `${cellSize}px`, height: `${cellSize}px`}}
+                    className={`
+                        cell-container
+                        ${cell.isAlive ? "alive-cell" : ""}
+                        ${isRunning ? "" : "cell-border"}
+                      `}
+                    key={`${yindex}`}
+                    onClick={() => setCellAlive(xindex, yindex)}
+                  ></div>
+                  // End Single Cell
 
-              )}
-          </div>)
-        }
-      </div>
+                  )}
+              </div>)
+            }
+          </div>
 
-      <div className="flex flex-row mt-3 space-x-4">
-        <button
-          onClick={beginSimulation}
-          className="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded">Start</button>
+          {/* Simulation Controls */}
+          <div className="flex flex-row mt-3 space-x-4">
+            <button
+              onClick={beginSimulation}
+              className="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded">Start</button>
 
-        <button
-          onClick={reset}
-          className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 rounded">New Board</button>
+            <button
+              onClick={reset}
+              className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 rounded">New Board</button>
 
-        <button
-          onClick={pause}
-          className="bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-4 rounded">Pause</button>
+            <button
+              onClick={pause}
+              className="bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-4 rounded">Pause</button>
 
-        <button
-          onClick={play}
-          className="bg-green-500 hover:bg-green-700 text-white py-1 px-4 rounded">Play</button>
-      </div>
+            <button
+              onClick={play}
+              className="bg-green-500 hover:bg-green-700 text-white py-1 px-4 rounded">Play</button>
+          </div>
 
-      <div className="flex flex-row mt-3 space-x-4 mt-8">
-        <button
-          onClick={randomize}
-          className="bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-4 rounded">Randomize</button>
+          <div className="flex flex-row mt-3 space-x-4 mt-8">
+            <button
+              onClick={randomize}
+              className="bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-4 rounded">Randomize</button>
+          </div>
 
+          {/* Board Variable Controls  */}
+          <div className="border-2 border-solid border-indigo-500/25 mt-8 p-10 rounded-lg">
 
-      </div>
+            <div className="flex items-center">
+                <div class="md:w-1/3">
+                  <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-full-name">
+                    Rows
+                  </label>
+                </div>
+                <div class="md:w-1/3">
+                  <input onChange={e => setNumRows(Number(e.target.value))} class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-full-name" type="text" defaultValue={numRows}></input>
+                </div>
+            </div>
 
+            <div className="flex items-center mt-6">
+                <div class="md:w-1/3">
+                  <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-full-name">
+                    Columns
+                  </label>
+                </div>
+                <div class="md:w-1/3">
+                  <input onChange={e => setNumCols(Number(e.target.value))} class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-full-name" type="text" defaultValue={numCols}></input>
+                </div>
+            </div>
 
-      <div className="border-2 border-solid border-indigo-500/25 mt-8 p-10 rounded-lg">
-        <div className="flex flex-row mt-3 space-x-4">
-            <label for="myRange">Number of Rows</label>
-            <input type="range" min="0" max="300" value={numRows} onChange={e => setNumRows(Number(e.target.value))} className="slider" id="myRange" />
-            {numRows}
-        </div>
+            <div className="flex items-center mt-6">
+                <div class="md:w-1/3">
+                  <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-full-name">
+                    Cell Size (px)
+                  </label>
+                </div>
+                <div class="md:w-1/3">
+                  <input onChange={e => setCellSize(Number(e.target.value))} class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-full-name" type="text" defaultValue={cellSize}></input>
+                </div>
+            </div>
 
-        <div className="flex flex-row mt-3 space-x-4 mt-8">
-            <label for="myRange">Number of Columns</label>
-            <input type="range" min="0" max="500" value={numCols} onChange={e => setNumCols(Number(e.target.value))} className="slider" id="myRange" />
-            {numCols}
-        </div>
-
-        <div className="flex flex-row mt-3 space-x-4 mt-8">
-            <label for="myRange">Size of Cell (px)</label>
-            <input type="range" min="0" max="50" value={cellSize} onChange={e => setCellSize(Number(e.target.value))} className="slider" id="myRange" />
-            {cellSize}
-        </div>
-
-        <div className="flex flex-row mt-3 space-x-4 mt-8">
-            <label for="myRange">Randomization Darkness</label>
-            <input type="range" min="0" max="10" value={randomizationDarkness*10} onChange={e => setRandomizationDarkness(Number(e.target.value)/10)} className="slider" id="myRange" />
-            {randomizationDarkness}
-        </div>
-      </div>
-
+            <div className="flex items-center mt-6">
+                <div class="md:w-1/3">
+                  <label class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-full-name">
+                    Randomization Thickness (0-1)
+                  </label>
+                </div>
+                <div class="md:w-1/3">
+                  <input onChange={e => setRandomizationDarkness(Number(e.target.value))} class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" id="inline-full-name" type="text" defaultValue={randomizationDarkness}></input>
+                </div>
+            </div>
+          </div>
       </main>
     </>
   )
